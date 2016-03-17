@@ -35,7 +35,7 @@ namespace Logic
                 resultArr[i] += i < polynome.indexes.Length ? polynome.indexes[i] : 0;
             }
             
-            return new Polynome(resultArr);
+            return new Polynome(resultArr.Reverse().ToArray());
         }
 
         public Polynome Substract(Polynome polynome)
@@ -52,7 +52,7 @@ namespace Logic
                 resultArr[i] -= i < polynome.indexes.Length ? polynome.indexes[i] : 0;
             }
 
-            return new Polynome(resultArr);
+            return new Polynome(resultArr.Reverse().ToArray());
         }
         public Polynome Multiply(Polynome polynome)
         {
@@ -66,7 +66,7 @@ namespace Logic
                 for (int j = 0; j < polynome.indexes.Length; j++)
                     resultArr[i + j] += this.indexes[i] * polynome.indexes[j];
 
-            return new Polynome(resultArr);
+            return new Polynome(resultArr.Reverse().ToArray());
         }
 
         public static Polynome operator +(Polynome p1, Polynome p2)
@@ -127,7 +127,15 @@ namespace Logic
 
         public override int GetHashCode()
         {
-            return DEFAULT_CAPACITY.GetHashCode() ^ indexes.GetHashCode() ^ power.GetHashCode();
+            int hash = 0;
+            unchecked
+            {
+                foreach (var elem in indexes)
+                    if (elem != 0)
+                        hash = hash ^ elem.GetHashCode();
+                hash = hash ^ (DEFAULT_CAPACITY * 200) ^ (Power * 140);
+                return hash;
+            }
         }
 
         private int GetPower()
