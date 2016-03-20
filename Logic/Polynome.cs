@@ -3,61 +3,42 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Logic.Properties;
 
 namespace Logic
 {
     public class Polynome
     {
         private const byte DEFAULT_CAPACITY = 5;
+        private double ACCURACY = Properties.Settings.Default.accuracy;
         private double[] indexes;
         private int power;
 
         public Polynome(params double[] indexes)
         {
-            this.indexes = indexes.Reverse().ToArray() ?? new double[DEFAULT_CAPACITY];
+            this.indexes = (double[])indexes.Reverse().ToArray().Clone() ?? new double[DEFAULT_CAPACITY];
+            CalculatePower();
         }
 
-        public int Power { get { return GetPower(); } }
+        public int Power { get { return power; } }
 
         public double[] Indexes { get { return (double[])indexes.Clone(); } }
 
         public Polynome Add(Polynome polynome)
         {
-            if (polynome == null)
-                throw new ArgumentNullException($"{nameof(polynome)} is null");
-
-            int length = Math.Max(this.indexes.Length, polynome.indexes.Length);
-            double[] resultArr = new double[length];
-
-            for (int i = 0; i < length; i++)
-            {
-                resultArr[i] += i < this.indexes.Length ? this.indexes[i] : 0;
-                resultArr[i] += i < polynome.indexes.Length ? polynome.indexes[i] : 0;
-            }
-            
-            return new Polynome(resultArr.Reverse().ToArray());
+            CheckPolynome(polynome);
+            return Sum(polynome);
         }
 
         public Polynome Substract(Polynome polynome)
         {
-            if (polynome == null)
-                throw new ArgumentNullException($"{nameof(polynome)} is null");
-
-            int length = Math.Max(this.indexes.Length, polynome.indexes.Length);
-            double[] resultArr = new double[length];
-
-            for (int i = 0; i < length; i++)
-            {
-                resultArr[i] += i < this.indexes.Length ? this.indexes[i] : 0;
-                resultArr[i] -= i < polynome.indexes.Length ? polynome.indexes[i] : 0;
-            }
-
-            return new Polynome(resultArr.Reverse().ToArray());
+            CheckPolynome(polynome);
+            return Sum((Minus(polynome)));
         }
+
         public Polynome Multiply(Polynome polynome)
         {
-            if (polynome == null)
-                throw new ArgumentNullException($"{nameof(polynome)} is null");
+            CheckPolynome(polynome);
 
             int length = this.indexes.Length + polynome.indexes.Length;
             double[] resultArr = new double[length];
@@ -71,16 +52,19 @@ namespace Logic
 
         public static Polynome operator +(Polynome p1, Polynome p2)
         {
+            CheckPolynome(p1);
             return p1.Add(p2);
         }
 
         public static Polynome operator -(Polynome p1, Polynome p2)
         {
+            CheckPolynome(p1);
             return p1.Substract(p2);
         }
 
         public static Polynome operator *(Polynome p1, Polynome p2)
         {
+            CheckPolynome(p1);
             return p1.Multiply(p2);
         }
 
@@ -89,9 +73,9 @@ namespace Logic
             string result = string.Empty;
 
             for (int i = indexes.Length - 1; i >= 0; i--)
-                if (indexes[i] != 0)
+                if (Math.Abs(indexes[i]) > ACCURACY)
                 {
-                    if (i != GetPower() && indexes[i] >= 0)
+                    if (i != power && indexes[i] >= 0)
                         result += "+ ";
                     if (indexes[i] < 0)
                         result += "- ";
@@ -115,10 +99,10 @@ namespace Logic
             if(obj is Polynome)
             {
                 p = (Polynome)obj;
-                if (this.Power != p.Power)
+                if (this.power != p.power)
                     return false;
-                for (int i = this.Power; i >= 0; i--)
-                    if (indexes[i] != p.Indexes[i])
+                for (int i = this.power; i >= 0; i--)
+                    if ( Math.Abs(indexes[i] - p.Indexes[i]) > ACCURACY)
                         return false;
             }
 
@@ -133,17 +117,53 @@ namespace Logic
                 foreach (var elem in indexes)
                     if (elem != 0)
                         hash = hash ^ elem.GetHashCode();
-                hash = hash ^ (DEFAULT_CAPACITY * 200) ^ (Power * 140);
+                hash = hash ^ (DEFAULT_CAPACITY * 200) ^ (power * 140);
                 return hash;
             }
         }
 
-        private int GetPower()
+        private Polynome Minus(Polynome polynome)
         {
+            double[] indexes = polynome.Indexes;
+
             for (int i = 0; i < indexes.Length; i++)
+                indexes[i] *= -1;
+
+            return new Polynome(indexes.Reverse().ToArray());
+        }
+
+        private Polynome Sum(Polynome polynome)
+        {
+            int length = Math.Max(this.indexes.Length, polynome.indexes.Length);
+            double[] resultArr = new double[length];
+
+            for (int i = 0; i < length; i++)
+            {
+                resultArr[i] += i < this.indexes.Length ? this.indexes[i] : 0;
+                resultArr[i] += i < polynome.indexes.Length ? polynome.indexes[i] : 0;
+            }
+
+            return new Polynome(resultArr.Reverse().ToArray());
+        }
+
+        private static void CheckPolynome(Polynome p)
+        {
+            if (p == null)
+                throw new ArgumentNullException("Null argument was passed");
+        }
+
+        private void CalculatePower()
+        {
+            int i = indexes.Length - 1;
+            while (i >= 0)
+            {
                 if (indexes[i] != 0)
+                {
                     power = i;
-            return power;
+                    return;
+                }
+                i--;
+            }
         }
 
     }
